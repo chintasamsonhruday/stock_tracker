@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CommandDialog, CommandEmpty, CommandInput, CommandList } from "@/components/ui/command"
+import { CommandDialog, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import {Button} from "@/components/ui/button";
 import {Loader2,  TrendingUp} from "lucide-react";
 import Link from "next/link";
@@ -116,28 +116,30 @@ export default function SearchCommand({ renderAs = 'button', label = 'Add stock'
                             {isSearchMode ? 'No results found' : 'No stocks available'}
                         </div>
                     ) : (
-                        <ul>
+                        <div>
                             <div className="search-count">
                                 {isSearchMode ? 'Search results' : 'Popular stocks'}
                                 {` `}({displayStocks?.length || 0})
                             </div>
                             {displayStocks?.map((stock) => (
-                                <li key={stock.symbol} className="search-item flex items-center gap-2">
-                                    <Link
-                                        href={`/stocks/${stock.symbol}`}
-                                        onClick={handleSelectStock}
-                                        className="search-item-link"
-                                    >
-                                        <TrendingUp className="h-4 w-4 text-gray-500" />
-                                        <div  className="flex-1">
-                                            <div className="search-item-name">
-                                                {stock.name}
+                                <CommandItem key={stock.symbol} value={`${stock.symbol} ${stock.name}`} className="search-item flex items-center gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <Link
+                                            href={`/stocks/${stock.symbol}`}
+                                            onClick={handleSelectStock}
+                                            className="search-item-link"
+                                        >
+                                            <TrendingUp className="h-4 w-4 text-gray-500" />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="search-item-name">
+                                                    {stock.name}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {[stock.symbol, stock.exchange, stock.type].filter(Boolean).join(' | ')}
+                                                </div>
                                             </div>
-                                            <div className="text-sm text-gray-500">
-                                                {[stock.symbol, stock.exchange, stock.type].filter(Boolean).join(' | ')}
-                                            </div>
-                                        </div>
-                                    </Link>
+                                        </Link>
+                                    </div>
                                     {userId ? (
                                         <WatchlistButton
                                             symbol={stock.symbol}
@@ -148,9 +150,9 @@ export default function SearchCommand({ renderAs = 'button', label = 'Add stock'
                                             onWatchlistChange={handleWatchlistChange}
                                         />
                                     ) : null}
-                                </li>
+                                </CommandItem>
                             ))}
-                        </ul>
+                        </div>
                     )
                     }
                 </CommandList>

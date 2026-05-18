@@ -2,6 +2,8 @@ services:
   openstock:
     build:
       context: .
+      args:
+        NEXT_PUBLIC_FINNHUB_API_KEY: ${NEXT_PUBLIC_FINNHUB_API_KEY}
       extra_hosts:
         - "mongodb:host-gateway"
     ports:

@@ -17,13 +17,15 @@ RUN npm ci
 # Copy all project files
 COPY . .
 
+ARG NEXT_PUBLIC_FINNHUB_API_KEY=""
+
 # Build the Next.js application. The app reads MongoDB during page-data
 # collection, so Docker Desktop builds reach the Compose MongoDB container
 # through its published host port.
 RUN MONGODB_URI="mongodb://root:example@host.docker.internal:27017/openstock?authSource=admin" \
     BETTER_AUTH_SECRET="docker_build_placeholder_change_at_runtime" \
     BETTER_AUTH_URL="http://localhost:3000" \
-    NEXT_PUBLIC_FINNHUB_API_KEY="" \
+    NEXT_PUBLIC_FINNHUB_API_KEY="${NEXT_PUBLIC_FINNHUB_API_KEY}" \
     NEXT_PUBLIC_SOURCE_CODE_URL="https://github.com/chintasamsonhruday/stock_tracker" \
     FINNHUB_BASE_URL="https://finnhub.io/api/v1" \
     npm run build
