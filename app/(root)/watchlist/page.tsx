@@ -45,7 +45,13 @@ export default async function WatchlistPage() {
                     <p className="text-gray-500 mt-1">Track your favorite stocks and manage alerts.</p>
                 </div>
                 <div className="flex items-center space-x-4">
-                    <SearchCommand renderAs="button" label="Add Stock" initialStocks={[]} />
+                    <SearchCommand
+                        renderAs="button"
+                        label="Add Stock"
+                        initialStocks={[]}
+                        userId={userId}
+                        initialWatchlistSymbols={watchlistSymbols}
+                    />
                 </div>
             </div>
 

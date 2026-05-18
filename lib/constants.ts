@@ -75,6 +75,7 @@ export const MARKET_OVERVIEW_WIDGET_CONFIG = {
                 { s: 'NASDAQ:META', d: 'Meta Platforms' },
                 { s: 'NYSE:ORCL', d: 'Oracle Corp' },
                 { s: 'NASDAQ:INTC', d: 'Intel Corp' },
+                { s: 'NASDAQ:IREN', d: 'IREN Limited' },
             ],
         },
         {
@@ -156,6 +157,7 @@ export const MARKET_DATA_WIDGET_CONFIG = {
                 { name: 'NASDAQ:FB', displayName: 'Meta Platforms' },
                 { name: 'NYSE:ORCL', displayName: 'Oracle Corp' },
                 { name: 'NASDAQ:INTC', displayName: 'Intel Corp' },
+                { name: 'NASDAQ:IREN', displayName: 'IREN Limited' },
             ],
         },
         {

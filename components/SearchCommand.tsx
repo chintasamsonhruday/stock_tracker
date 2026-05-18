@@ -7,12 +7,24 @@ import {Loader2,  TrendingUp} from "lucide-react";
 import Link from "next/link";
 import {searchStocks} from "@/lib/actions/finnhub.actions";
 import {useDebounce} from "@/hooks/useDebounce";
+import WatchlistButton from "@/components/WatchlistButton";
+import { useRouter } from "next/navigation";
 
-export default function SearchCommand({ renderAs = 'button', label = 'Add stock', initialStocks }: SearchCommandProps) {
+type SearchCommandComponentProps = {
+    renderAs?: 'button' | 'text';
+    label?: string;
+    initialStocks: StockWithWatchlistStatus[];
+    userId?: string;
+    initialWatchlistSymbols?: string[];
+};
+
+export default function SearchCommand({ renderAs = 'button', label = 'Add stock', initialStocks, userId, initialWatchlistSymbols = [] }: SearchCommandComponentProps) {
+    const router = useRouter();
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [loading, setLoading] = useState(false)
     const [stocks, setStocks] = useState<StockWithWatchlistStatus[]>(initialStocks);
+    const [watchlistSymbols, setWatchlistSymbols] = useState(() => new Set(initialWatchlistSymbols.map((symbol) => symbol.toUpperCase())));
 
     const isSearchMode = !!searchTerm.trim();
     const displayStocks = isSearchMode ? stocks : stocks?.slice(0, 10);
@@ -34,7 +46,10 @@ export default function SearchCommand({ renderAs = 'button', label = 'Add stock'
         setLoading(true)
         try {
             const results = await searchStocks(searchTerm.trim());
-            setStocks(results);
+            setStocks(results.map((stock) => ({
+                ...stock,
+                isInWatchlist: watchlistSymbols.has(stock.symbol.toUpperCase()),
+            })));
         } catch {
             setStocks([])
         } finally {
@@ -52,6 +67,25 @@ export default function SearchCommand({ renderAs = 'button', label = 'Add stock'
         setOpen(false);
         setSearchTerm("");
         setStocks(initialStocks);
+    }
+
+    const handleWatchlistChange = (symbol: string, added: boolean) => {
+        const upperSymbol = symbol.toUpperCase();
+        setWatchlistSymbols((current) => {
+            const next = new Set(current);
+            if (added) {
+                next.add(upperSymbol);
+            } else {
+                next.delete(upperSymbol);
+            }
+            return next;
+        });
+        setStocks((current) =>
+            current.map((stock) =>
+                stock.symbol.toUpperCase() === upperSymbol ? { ...stock, isInWatchlist: added } : stock
+            )
+        );
+        router.refresh();
     }
 
     return (
@@ -88,7 +122,7 @@ export default function SearchCommand({ renderAs = 'button', label = 'Add stock'
                                 {` `}({displayStocks?.length || 0})
                             </div>
                             {displayStocks?.map((stock) => (
-                                <li key={stock.symbol} className="search-item">
+                                <li key={stock.symbol} className="search-item flex items-center gap-2">
                                     <Link
                                         href={`/stocks/${stock.symbol}`}
                                         onClick={handleSelectStock}
@@ -103,8 +137,17 @@ export default function SearchCommand({ renderAs = 'button', label = 'Add stock'
                                                 {[stock.symbol, stock.exchange, stock.type].filter(Boolean).join(' | ')}
                                             </div>
                                         </div>
-
                                     </Link>
+                                    {userId ? (
+                                        <WatchlistButton
+                                            symbol={stock.symbol}
+                                            company={stock.name}
+                                            isInWatchlist={stock.isInWatchlist}
+                                            userId={userId}
+                                            type="icon"
+                                            onWatchlistChange={handleWatchlistChange}
+                                        />
+                                    ) : null}
                                 </li>
                             ))}
                         </ul>

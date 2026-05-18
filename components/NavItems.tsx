@@ -18,7 +18,15 @@ const DonatePopupContext = createContext<{
 
 export const useDonatePopup = () => useContext(DonatePopupContext);
 
-const NavItems = ({initialStocks}: { initialStocks: StockWithWatchlistStatus[]}) => {
+const NavItems = ({
+    initialStocks,
+    userId,
+    initialWatchlistSymbols = [],
+}: {
+    initialStocks: StockWithWatchlistStatus[];
+    userId?: string;
+    initialWatchlistSymbols?: string[];
+}) => {
     const pathname = usePathname()
 
     const isActive = (path: string) => {
@@ -42,6 +50,8 @@ const NavItems = ({initialStocks}: { initialStocks: StockWithWatchlistStatus[]})
                             renderAs="text"
                             label="Search"
                             initialStocks={initialStocks}
+                            userId={userId}
+                            initialWatchlistSymbols={initialWatchlistSymbols}
                         />
                     </li>
                 )

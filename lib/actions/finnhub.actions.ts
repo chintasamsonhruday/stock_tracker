@@ -26,6 +26,40 @@ type SearchStockCandidate = FinnhubSearchResult & {
     __exchange?: string;
 };
 
+const FALLBACK_SEARCH_STOCKS: StockWithWatchlistStatus[] = [
+    { symbol: 'IREN', name: 'IREN Limited', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'AAPL', name: 'Apple Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'MSFT', name: 'Microsoft Corp', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'GOOGL', name: 'Alphabet Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'AMZN', name: 'Amazon.com Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'TSLA', name: 'Tesla Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'META', name: 'Meta Platforms Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'NVDA', name: 'NVIDIA Corp', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'AMD', name: 'Advanced Micro Devices Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'NFLX', name: 'Netflix Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'ORCL', name: 'Oracle Corp', exchange: 'NYSE', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'CRM', name: 'Salesforce Inc', exchange: 'NYSE', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'COIN', name: 'Coinbase Global Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'PLTR', name: 'Palantir Technologies Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'MARA', name: 'MARA Holdings Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+    { symbol: 'RIOT', name: 'Riot Platforms Inc', exchange: 'NASDAQ', type: 'Common Stock', isInWatchlist: false },
+];
+
+function searchFallbackStocks(query?: string) {
+    const trimmed = typeof query === 'string' ? query.trim().toLowerCase() : '';
+
+    if (!trimmed) {
+        return FALLBACK_SEARCH_STOCKS.slice(0, 10);
+    }
+
+    return FALLBACK_SEARCH_STOCKS
+        .filter((stock) => {
+            const haystack = `${stock.symbol} ${stock.name} ${stock.exchange} ${stock.type}`.toLowerCase();
+            return haystack.includes(trimmed);
+        })
+        .slice(0, 15);
+}
+
 const FINNHUB_EXCHANGE_SUFFIXES = new Set([
     'AS', 'AT', 'AX', 'BA', 'BK', 'BO', 'BR', 'CO', 'DE', 'F', 'HE', 'HK',
     'IL', 'IS', 'JK', 'JO', 'KL', 'KQ', 'KS', 'L', 'LS', 'MC', 'MI', 'MX',
@@ -66,6 +100,8 @@ function getExchangeLabel(symbol: string, exchange?: string) {
 export async function getQuote(symbol: string) {
     try {
         const token = NEXT_PUBLIC_FINNHUB_API_KEY;
+        if (!token) return null;
+
         const url = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(symbol)}&token=${token}`;
         // No caching for real-time price
         return await fetchJSON<FinnhubQuote>(url, 0);
@@ -78,6 +114,8 @@ export async function getQuote(symbol: string) {
 export async function getCompanyProfile(symbol: string) {
     try {
         const token = NEXT_PUBLIC_FINNHUB_API_KEY;
+        if (!token) return null;
+
         const url = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${encodeURIComponent(symbol)}&token=${token}`;
         // Cache profile for 24 hours
         return await fetchJSON<FinnhubCompanyProfile>(url, 86400);
@@ -119,7 +157,8 @@ export async function getNews(symbols?: string[]): Promise<MarketNewsArticle[]> 
         const range = getDateRange(5);
         const token = NEXT_PUBLIC_FINNHUB_API_KEY;
         if (!token) {
-            throw new Error('FINNHUB API key is not configured');
+            console.warn('Finnhub API key is not configured; skipping market news.');
+            return [];
         }
         const cleanSymbols = (symbols || [])
             .map((s) => s?.trim().toUpperCase())
@@ -194,9 +233,7 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
     try {
         const token = NEXT_PUBLIC_FINNHUB_API_KEY;
         if (!token) {
-            // If no token, log and return empty to avoid throwing per requirements
-            console.error('Error in stock search:', new Error('FINNHUB API key is not configured'));
-            return [];
+            return searchFallbackStocks(query);
         }
 
         const trimmed = typeof query === 'string' ? query.trim() : '';
