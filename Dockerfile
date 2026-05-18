@@ -24,6 +24,7 @@ RUN MONGODB_URI="mongodb://root:example@host.docker.internal:27017/openstock?aut
     BETTER_AUTH_SECRET="docker_build_placeholder_change_at_runtime" \
     BETTER_AUTH_URL="http://localhost:3000" \
     NEXT_PUBLIC_FINNHUB_API_KEY="" \
+    NEXT_PUBLIC_SOURCE_CODE_URL="https://github.com/chintasamsonhruday/stock_tracker" \
     FINNHUB_BASE_URL="https://finnhub.io/api/v1" \
     npm run build
 

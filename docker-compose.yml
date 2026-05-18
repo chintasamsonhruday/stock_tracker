@@ -5,12 +5,13 @@ services:
       extra_hosts:
         - "mongodb:host-gateway"
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     env_file:
       - .env
     environment:
       NODE_ENV: production
       MONGODB_URI: mongodb://root:example@mongodb:27017/openstock?authSource=admin
+      NEXT_PUBLIC_SOURCE_CODE_URL: https://github.com/chintasamsonhruday/stock_tracker
     restart: unless-stopped
     depends_on:
       - mongodb
