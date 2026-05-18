@@ -3,11 +3,12 @@ import Image from "next/image";
 import OpenDevSocietyBranding from "./OpenDevSocietyBranding";
 
 const Footer = () => {
+    const sourceCodeUrl = process.env.NEXT_PUBLIC_SOURCE_CODE_URL || "https://github.com/Open-Dev-Society/OpenStock";
+
     return (
         <footer className="bg-gray-900 text-white border-t border-gray-800">
             <div className="container mx-auto px-4 py-12">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {/* Brand Section */}
                     <div className="col-span-1 md:col-span-2">
                         <Link href="/" className="flex items-center gap-2 mb-4">
                             <Image
@@ -19,12 +20,12 @@ const Footer = () => {
                             />
                         </Link>
                         <p className="text-gray-400 mb-6 max-w-md">
-                            OpenStock is an open-source alternative to expensive market platforms. Track real-time prices, set personalized alerts, and explore detailed company insights — built openly, for everyone, forever free.
+                            OpenStock is an open-source alternative to expensive market platforms. Track real-time prices, set personalized alerts, and explore detailed company insights, built openly, for everyone, forever free.
                         </p>
                         <div className="mb-8">
                             <Link href="/about" className="text-teal-400 hover:text-teal-300 font-medium inline-flex items-center gap-1 group">
                                 Learn about our mission
-                                <span className="group-hover:translate-x-1 transition-transform">→</span>
+                                <span className="group-hover:translate-x-1 transition-transform">-&gt;</span>
                             </Link>
                         </div>
                         <div className="flex space-x-6">
@@ -64,7 +65,6 @@ const Footer = () => {
                         </div>
                     </div>
 
-                    {/* Resources */}
                     <div>
                         <h3 className="text-lg font-semibold mb-4">Resources</h3>
                         <ul className="space-y-2">
@@ -92,19 +92,24 @@ const Footer = () => {
                                     </span>
                                 </Link>
                             </li>
+                            <li>
+                                <Link href={sourceCodeUrl} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors duration-200 relative group">
+                                    <span className="relative">
+                                        Source Code
+                                        <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full"></span>
+                                    </span>
+                                </Link>
+                            </li>
                         </ul>
                     </div>
                 </div>
 
-                {/* Divider */}
                 <div className="border-t border-gray-800 mt-8 pt-8">
                     <div className="flex flex-col md:flex-row justify-between items-center">
-                        {/* Copyright */}
                         <div className="text-gray-400 text-sm mb-4 md:mb-0">
-                            © {new Date().getFullYear()} Open Dev Society. All rights reserved.
+                            (c) {new Date().getFullYear()} Open Dev Society. Licensed under AGPL-3.0.
                         </div>
 
-                        {/* Open Dev Society Branding */}
                         <div className="flex items-center space-x-2">
                             <OpenDevSocietyBranding />
                         </div>
