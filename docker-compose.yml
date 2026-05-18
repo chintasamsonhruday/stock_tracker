@@ -8,6 +8,9 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://root:example@mongodb:27017/openstock?authSource=admin
     restart: unless-stopped
     depends_on:
       - mongodb

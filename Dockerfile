@@ -9,18 +9,23 @@ COPY package*.json ./
 # Uncomment the next line if you use pnpm and have pnpm-lock.yaml
 # COPY pnpm-lock.yaml ./
 
-# Install dependencies (choose npm or pnpm)
-RUN npm install
+# Install dependencies
+RUN npm ci
 # If using pnpm, replace with:
 # RUN npm install -g pnpm && pnpm install
 
 # Copy all project files
 COPY . .
 
-# Build the Next.js application
-RUN npm run build
-# Or if using pnpm:
-# RUN pnpm run build
+# Build the Next.js application. The app reads MongoDB during page-data
+# collection, so Docker Desktop builds reach the Compose MongoDB container
+# through its published host port.
+RUN MONGODB_URI="mongodb://root:example@host.docker.internal:27017/openstock?authSource=admin" \
+    BETTER_AUTH_SECRET="docker_build_placeholder_change_at_runtime" \
+    BETTER_AUTH_URL="http://localhost:3000" \
+    NEXT_PUBLIC_FINNHUB_API_KEY="" \
+    FINNHUB_BASE_URL="https://finnhub.io/api/v1" \
+    npm run build
 
 # Expose the port Next.js runs on
 EXPOSE 3000
