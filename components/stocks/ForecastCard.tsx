@@ -60,7 +60,7 @@ export default function ForecastCard({ forecast }: ForecastCardProps) {
                             {forecast.symbol} model signal: <span className={getSignalClass(forecast.modelSignal)}>{forecast.modelSignal}</span>
                         </h2>
                         <p className="mt-1 text-sm text-gray-400">
-                            Monte Carlo scenario ranges from {forecast.factors.length} factors, news, analyst data, and sentiment.
+                            Monte Carlo scenario ranges from {forecast.factors.length} factors, news, analyst data, sentiment, and {forecast.priceHistorySource.toLowerCase()}.
                         </p>
                     </div>
 
@@ -80,6 +80,12 @@ export default function ForecastCard({ forecast }: ForecastCardProps) {
                         <div>
                             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-gray-500">Volatility</p>
                             <p className="mt-1 text-lg font-semibold text-white">{forecast.annualizedVolatilityPct.toFixed(1)}%</p>
+                        </div>
+                        <div className="col-span-2">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-gray-500">Price History</p>
+                            <p className="mt-1 text-sm font-semibold text-white">
+                                {forecast.priceHistoryDays > 0 ? `${forecast.priceHistoryDays} daily bars` : 'Aggregate fallback'}
+                            </p>
                         </div>
                     </div>
                 </div>
