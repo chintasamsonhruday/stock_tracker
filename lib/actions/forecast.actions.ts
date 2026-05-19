@@ -436,9 +436,12 @@ export async function getStockForecast(symbol: string): Promise<StockForecast | 
     addFactor(factors, 'Drawdown from 52 week high', 'Risk', drawdownFromHigh, scoreFromRange(drawdownFromHigh, -25, 25), 0.6, 'Distance from recent high; deep drawdowns reduce confidence.', '%');
 
     const annualVolatilityPct = toNumber(metric['3MonthADReturnStd']);
+    const rawAnnualVolatility = dailyStats?.annualizedVolatility ?? null;
     const beta = toNumber(metric['beta']);
-    addFactor(factors, '3 month return volatility', 'Risk', annualVolatilityPct, scoreFromRange(annualVolatilityPct, 45, 60, true), 1.1, 'Higher volatility widens forecast range.', '%');
-    addFactor(factors, 'Beta', 'Risk', beta, scoreFromRange(beta, 1.2, 1.8, true), 0.8, 'Sensitivity versus the broader market.');
+    const volatility = clamp(rawAnnualVolatility ?? ((annualVolatilityPct || 55) / 100), 0.15, 2.5);
+    addFactor(factors, '3 month return volatility', 'Risk', annualVolatilityPct, scoreFromRange(annualVolatilityPct, 45, 60, true), 1.3, 'Higher volatility widens forecast range.', '%');
+    addFactor(factors, 'Realized daily volatility', 'Risk', rawAnnualVolatility === null ? null : rawAnnualVolatility * 100, scoreFromRange(rawAnnualVolatility === null ? null : rawAnnualVolatility * 100, 55, 70, true), 1.1, 'Volatility calculated from raw Alpha Vantage daily closes.', '%');
+    addFactor(factors, 'Beta', 'Risk', beta, scoreFromRange(beta, 1.2, 1.8, true), 1.0, 'Sensitivity versus the broader market.');
 
     const volume10 = toNumber(metric['10DayAverageTradingVolume']);
     const volume3m = toNumber(metric['3MonthAverageTradingVolume']);
@@ -487,19 +490,38 @@ export async function getStockForecast(symbol: string): Promise<StockForecast | 
                     : 0;
     addFactor(factors, 'Sentiment alignment', 'Sentiment', alignmentScore, alignmentScore, 0.6, sentiment?.sourceAlignment || 'No sentiment data.');
 
+    const speculativeRunupPct = dailyStats
+        ? Math.max(dailyStats.simpleReturn20d ?? 0, 0) * 0.55 + Math.max(dailyStats.simpleReturn60d ?? 0, 0) * 0.45
+        : null;
+    const volatilityExcessPct = Math.max(volatility * 100 - 55, 0);
+    const reversalRisk = speculativeRunupPct === null ? null : (speculativeRunupPct * volatilityExcessPct) / 100;
+    addFactor(factors, 'Speculative reversal risk', 'Risk', reversalRisk, reversalRisk === null ? 0 : -clamp(reversalRisk / 45, 0, 1), 0.9, 'Penalizes sharp run-ups when realized volatility is already high.', ' risk', 2);
+
+    const conservativeReservePct = clamp(
+        Math.max(0, volatility - 0.55) * 65
+        + Math.max(0, (beta ?? 1) - 1.2) * 8
+        + Math.max(0, (analystBearishPct ?? 0) - 15) * 0.35
+        + Math.max(0, -newsTone) * 15,
+        0,
+        55,
+    );
+    addFactor(factors, 'Conservative risk reserve', 'Risk', conservativeReservePct, -clamp(conservativeReservePct / 55, 0, 1), 0.8, 'Extra downside buffer for volatile, high-beta, bearish-news, or analyst-negative setups.', '%');
+
     const weightedScore = factors.reduce((sum, factor) => sum + factor.score * factor.weight, 0)
         / factors.reduce((sum, factor) => sum + factor.weight, 0);
 
-    const rawAnnualVolatility = dailyStats?.annualizedVolatility ?? null;
     const rawHistoricalDrift = dailyStats?.historicalDrift ?? null;
-    const volatility = clamp(rawAnnualVolatility ?? ((annualVolatilityPct || 55) / 100), 0.15, 2.5);
-    const momentumTilt = (
+    const rawMomentumTilt = (
         (dailyStats?.simpleReturn5d ?? toNumber(metric['5DayPriceReturnDaily']) ?? 0) * 0.01 +
         (dailyStats?.simpleReturn20d ?? 0) * 0.004 +
         (dailyStats?.simpleReturn60d ?? toNumber(metric['13WeekPriceReturnDaily']) ?? 0) * 0.002
     );
-    const historyDriftTilt = rawHistoricalDrift === null ? 0 : clamp(rawHistoricalDrift, -1.2, 1.2) * 0.35;
-    const annualDrift = clamp(weightedScore * 0.45 + historyDriftTilt + momentumTilt, -0.9, 0.9);
+    const momentumTilt = rawMomentumTilt >= 0
+        ? clamp(rawMomentumTilt * 0.75, 0, 0.28)
+        : clamp(rawMomentumTilt, -0.35, 0);
+    const historicalDriftBase = rawHistoricalDrift === null ? 0 : clamp(rawHistoricalDrift, -1.2, 1.2);
+    const historyDriftTilt = historicalDriftBase >= 0 ? historicalDriftBase * 0.22 : historicalDriftBase * 0.38;
+    const annualDrift = clamp(weightedScore * 0.38 + historyDriftTilt + momentumTilt, -0.9, 0.65);
     const confidence = clamp(
         35
         + Math.min(factors.filter((factor) => factor.value !== 'N/A').length, 34) * 1.7
