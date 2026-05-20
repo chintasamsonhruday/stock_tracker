@@ -7,7 +7,7 @@ $chromeCandidates = @(
     "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
 )
 $chrome = $chromeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-$url = "http://localhost:3000"
+$url = "http://127.0.0.1:3000"
 
 $dockerReady = $false
 try {
