@@ -5,6 +5,7 @@ import { POPULAR_STOCK_SYMBOLS } from '@/lib/constants';
 import { cache } from 'react';
 
 const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
+const STOOQ_QUOTE_URL = 'https://stooq.com/q/l/';
 const NEXT_PUBLIC_FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY ?? '';
 
 type FinnhubQuote = {
@@ -82,6 +83,84 @@ async function fetchJSON<T>(url: string, revalidateSeconds?: number): Promise<T>
 
 export { fetchJSON };
 
+function parseCsvRow(row: string) {
+    const values: string[] = [];
+    let current = '';
+    let quoted = false;
+
+    for (let i = 0; i < row.length; i += 1) {
+        const char = row[i];
+        if (char === '"') {
+            quoted = !quoted;
+        } else if (char === ',' && !quoted) {
+            values.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+
+    values.push(current);
+    return values.map((value) => value.trim());
+}
+
+function toStooqSymbol(symbol: string) {
+    const normalized = symbol.trim().toLowerCase();
+    if (!normalized) return '';
+    if (normalized.includes('.')) return normalized;
+
+    return `${normalized}.us`;
+}
+
+function toFiniteNumber(value: string | undefined) {
+    if (!value || value === 'N/D') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function getStooqQuote(symbol: string): Promise<FinnhubQuote | null> {
+    const stooqSymbol = toStooqSymbol(symbol);
+    if (!stooqSymbol) return null;
+
+    const url = new URL(STOOQ_QUOTE_URL);
+    url.searchParams.set('s', stooqSymbol);
+    url.searchParams.set('f', 'sd2t2lcpohv');
+    url.searchParams.set('h', '');
+    url.searchParams.set('e', 'csv');
+
+    try {
+        const response = await fetch(url.toString(), {
+            cache: 'force-cache',
+            next: { revalidate: 60 },
+        });
+        if (!response.ok) return null;
+
+        const csv = await response.text();
+        const lines = csv.trim().split(/\r?\n/);
+        if (lines.length < 2) return null;
+
+        const headers = parseCsvRow(lines[0]);
+        const values = parseCsvRow(lines[1]);
+        const row = new Map(headers.map((header, index) => [header, values[index]]));
+        const close = toFiniteNumber(row.get('Close'));
+        const previousClose = toFiniteNumber(row.get('Prev'));
+
+        if (!close || close <= 0) return null;
+
+        const change = previousClose && previousClose > 0 ? close - previousClose : 0;
+        const changePercent = previousClose && previousClose > 0 ? (change / previousClose) * 100 : 0;
+
+        return {
+            c: close,
+            d: change,
+            dp: changePercent,
+        };
+    } catch (error) {
+        console.error('Error fetching Stooq quote for', symbol, error);
+        return null;
+    }
+}
+
 function getExchangeLabel(symbol: string, exchange?: string) {
     if (exchange?.trim()) {
         return exchange.trim();
@@ -98,17 +177,21 @@ function getExchangeLabel(symbol: string, exchange?: string) {
 }
 
 export async function getQuote(symbol: string) {
+    const normalizedSymbol = symbol?.trim().toUpperCase();
+    if (!normalizedSymbol) return null;
+
     try {
         const token = NEXT_PUBLIC_FINNHUB_API_KEY;
-        if (!token) return null;
-
-        const url = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(symbol)}&token=${token}`;
-        // No caching for real-time price
-        return await fetchJSON<FinnhubQuote>(url, 0);
+        if (token) {
+            const url = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(normalizedSymbol)}&token=${token}`;
+            const quote = await fetchJSON<FinnhubQuote>(url, 0);
+            if (quote?.c && quote.c > 0) return quote;
+        }
     } catch (e) {
-        console.error('Error fetching quote for', symbol, e);
-        return null;
+        console.warn('Finnhub quote unavailable, falling back to Stooq for', normalizedSymbol);
     }
+
+    return getStooqQuote(normalizedSymbol);
 }
 
 export async function getCompanyProfile(symbol: string) {
@@ -300,6 +383,6 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
         return mapped;
     } catch (err) {
         console.error('Error in stock search:', err);
-        return [];
+        return searchFallbackStocks(query);
     }
 });

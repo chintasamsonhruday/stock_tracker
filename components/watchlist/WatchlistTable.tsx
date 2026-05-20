@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUp, ArrowDown, Bell } from "lucide-react";
@@ -17,6 +17,7 @@ interface WatchlistTableProps {
 
 export default function WatchlistTable({ data, userId, onRefresh }: WatchlistTableProps) {
     const [stocks, setStocks] = useState(data);
+    const symbolsKey = useMemo(() => stocks?.map((stock: any) => stock.symbol).join('|') || '', [stocks]);
 
     useEffect(() => {
         // Initial set if prop changes
@@ -24,12 +25,12 @@ export default function WatchlistTable({ data, userId, onRefresh }: WatchlistTab
     }, [data]);
 
     useEffect(() => {
-        if (!stocks || stocks.length === 0) return;
+        if (!symbolsKey) return;
 
-        // Poll for price updates every 15 seconds
+        // Poll for delayed price updates once per minute to respect free data-source limits.
         const interval = setInterval(async () => {
             try {
-                const symbols = stocks.map(s => s.symbol);
+                const symbols = symbolsKey.split('|').filter(Boolean);
                 if (symbols.length === 0) return;
 
                 // Dynamic import to avoid server-action issues if directly imported in client component sometimes
@@ -56,10 +57,10 @@ export default function WatchlistTable({ data, userId, onRefresh }: WatchlistTab
             } catch (err) {
                 console.error("Failed to poll watchlist prices", err);
             }
-        }, 5000);
+        }, 60000);
 
         return () => clearInterval(interval);
-    }, [stocks]); // Re-create interval if list size changes
+    }, [symbolsKey]);
 
     if (!stocks || stocks.length === 0) {
         return (
