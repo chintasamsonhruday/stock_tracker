@@ -1,4 +1,5 @@
 import TradingViewWidget from "@/components/TradingViewWidget";
+import DashboardQuotes from "@/components/dashboard/DashboardQuotes";
 import {
     HEATMAP_WIDGET_CONFIG,
     MARKET_DATA_WIDGET_CONFIG,
@@ -11,6 +12,8 @@ const Home = () => {
 
     return (
         <div className="flex min-h-screen home-wrapper">
+            <DashboardQuotes />
+
             <section className="grid w-full gap-8 home-section">
                 <div className="md:col-span-1 xl:col-span-1">
                     <TradingViewWidget
